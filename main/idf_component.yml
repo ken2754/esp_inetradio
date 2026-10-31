@@ -1,0 +1,5 @@
+dependencies:
+  idf: ">=5.0"
+  espressif/esp_audio_codec: "^2.4.1"
+  espressif/button: "^4.1.6"
+  espressif/mdns: "^1.14.0"

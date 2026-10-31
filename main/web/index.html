@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32-S3 インターネットラジオ設定</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #0284c7;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: var(--accent);
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #334155;
+  }
+  .badge.ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+  .badge.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .now-playing {
+    display: grid;
+    gap: 8px;
+  }
+  .station-headline {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .track-title {
+    font-size: 0.95rem;
+    color: var(--accent);
+    min-height: 1.4em;
+    word-break: break-word;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .vol-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 6px;
+    cursor: pointer;
+  }
+  .vol-val {
+    min-width: 48px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  button {
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.9; }
+  button.secondary {
+    background: #334155;
+    color: var(--text);
+  }
+  button.danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+  }
+  button.sm {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+  input[type="text"], input[type="password"], input[type="url"] {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #0f172a;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .station-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(15, 23, 42, 0.5);
+  }
+  .station-item.active {
+    border-color: var(--accent);
+    background: rgba(56, 189, 248, 0.08);
+  }
+  .station-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 6px;
+  }
+  @media (max-width: 600px) {
+    .station-inputs { grid-template-columns: 1fr; }
+    .station-item { grid-template-columns: 1fr; }
+  }
+  .ap-grid {
+    display: grid;
+    gap: 10px;
+  }
+  .ap-row {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  @media (max-width: 600px) {
+    .ap-row {
+      grid-template-columns: 1fr;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+  }
+  .scan-list {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .scan-chip {
+    background: #0f172a;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .scan-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .toast {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: #0284c7;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    display: none;
+    z-index: 100;
+  }
+  .actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .hint {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0 0 10px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ESP32-S3 Internet Radio</h1>
+    <div id="wifiBadge" class="badge">読み込み中...</div>
+  </header>
+
+  <!-- 再生ステータス & 音量 -->
+  <div class="card">
+    <h2>
+      <span>再生ステータス & 音量</span>
+      <button class="sm" onclick="nextStation()">次の局へ巡回 (BOOT)</button>
+    </h2>
+    <div class="now-playing">
+      <div class="station-headline" id="curStationName">--</div>
+      <div class="track-title" id="curTrackTitle"></div>
+      <div class="meta-row">
+        <span>状態: <strong id="curState">--</strong></span>
+        <span>形式: <strong id="curCodec">--</strong></span>
+        <span>バッファ: <strong id="curBuffer">0%</strong></span>
+        <span>IP: <strong id="curIp">--</strong></span>
+      </div>
+      <div class="vol-row">
+        <span>🔈 音量</span>
+        <input type="range" id="volSlider" min="0" max="100" value="50" oninput="onVolumeInput(this.value)" onchange="onVolumeCommit(this.value)">
+        <span class="vol-val" id="volLabel">50%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ラジオ局設定 -->
+  <div class="card">
+    <h2>
+      <span>ラジオ局リスト (BOOTボタン巡回順)</span>
+      <button class="sm secondary" onclick="resetSomaFM()">SomaFM初期値に戻す</button>
+    </h2>
+    <p class="hint">「再生」を押すと即座に選局します。局名やURLを編集・追加した後は「ラジオ局リストを保存」を押してください。</p>
+    <div id="stationsContainer"></div>
+    <div class="actions-bar">
+      <button class="secondary" onclick="addStationRow()">＋ ラジオ局を追加</button>
+      <button onclick="saveStations()">ラジオ局リストを保存</button>
+    </div>
+  </div>
+
+  <!-- Wi-Fi AP設定 -->
+  <div class="card">
+    <h2>
+      <span>Wi-Fi AP 設定 (最大5件)</span>
+      <button class="sm secondary" onclick="scanWifi()">周囲のAPをスキャン</button>
+    </h2>
+    <p class="hint">登録された最大5個のAPのうち、最も電波強度(RSSI)の高いAPへ自動接続します。接続できるAPがない場合は 192.168.4.1 (SSID: ESP32-InetRadio) のSoftAPを起動します。</p>
+    <div id="scanResults" class="scan-list"></div>
+    <div class="ap-grid" id="wifiContainer" style="margin-top: 10px;"></div>
+    <div class="actions-bar">
+      <button onclick="saveWifi()">Wi-Fi設定を保存して再接続</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let stations = [];
+let currentStation = 0;
+let wifiAps = [];
+let volTimer = null;
+let isDraggingVol = false;
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2800);
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    const w = data.wifi;
+    const p = data.player;
+
+    const badge = document.getElementById('wifiBadge');
+    if (w.sta_connected) {
+      badge.className = 'badge ok';
+      badge.textContent = `Wi-Fi: ${w.ssid} (${w.rssi} dBm)`;
+    } else if (w.softap_active) {
+      badge.className = 'badge warn';
+      badge.textContent = `SoftAP: ${w.ssid} (${w.ip})`;
+    } else {
+      badge.className = 'badge';
+      badge.textContent = 'Wi-Fi 接続中...';
+    }
+
+    document.getElementById('curStationName').textContent =
+      p.station_name ? `[#${p.current_station + 1}] ${p.station_name}` : '未選択';
+    document.getElementById('curTrackTitle').textContent =
+      p.stream_title ? `♪ ${p.stream_title}` : (p.station_url || '');
+    document.getElementById('curState').textContent = p.state;
+    document.getElementById('curCodec').textContent = `${p.codec} ${p.sample_rate}Hz`;
+    document.getElementById('curBuffer').textContent = `${p.buffer_pct}%`;
+    document.getElementById('curIp').textContent = w.ip;
+
+    if (!isDraggingVol) {
+      document.getElementById('volSlider').value = p.volume;
+      document.getElementById('volLabel').textContent = `${p.volume}%`;
+    }
+
+    if (currentStation !== p.current_station) {
+      currentStation = p.current_station;
+      highlightActiveStation();
+    }
+  } catch (e) {
+    // ignore transient poll error
+  }
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    stations = cfg.stations || [];
+    currentStation = cfg.current_station || 0;
+    wifiAps = cfg.wifi_aps || [];
+    document.getElementById('volSlider').value = cfg.volume;
+    document.getElementById('volLabel').textContent = `${cfg.volume}%`;
+    renderStations();
+    renderWifiAps();
+  } catch (e) {
+    showToast('設定の読み込みに失敗しました');
+  }
+}
+
+function onVolumeInput(val) {
+  isDraggingVol = true;
+  document.getElementById('volLabel').textContent = `${val}%`;
+  clearTimeout(volTimer);
+  volTimer = setTimeout(() => sendVolume(val), 120);
+}
+
+function onVolumeCommit(val) {
+  isDraggingVol = false;
+  clearTimeout(volTimer);
+  sendVolume(val);
+}
+
+async function sendVolume(val) {
+  try {
+    await fetch('/api/volume', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({volume: parseInt(val, 10)})
+    });
+  } catch (e) {}
+}
+
+async function selectStation(index) {
+  try {
+    const res = await fetch('/api/station/select', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({index})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      currentStation = data.current_station;
+      highlightActiveStation();
+      showToast(`選局: ${data.name}`);
+      fetchStatus();
+    }
+  } catch (e) {
+    showToast('選局に失敗しました');
+  }
+}
+
+async function nextStation() {
+  try {
+    const res = await fetch('/api/station/select', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({next: true})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      currentStation = data.current_station;
+      highlightActiveStation();
+      showToast(`次の局へ切替: ${data.name}`);
+      fetchStatus();
+    }
+  } catch (e) {
+    showToast('局切替に失敗しました');
+  }
+}
+
+function highlightActiveStation() {
+  const rows = document.querySelectorAll('.station-item');
+  rows.forEach((r, idx) => {
+    r.classList.toggle('active', idx === currentStation);
+  });
+}
+
+function renderStations() {
+  const container = document.getElementById('stationsContainer');
+  container.innerHTML = '';
+  stations.forEach((st, idx) => {
+    const row = document.createElement('div');
+    row.className = 'station-item' + (idx === currentStation ? ' active' : '');
+    row.innerHTML = `
+      <div>
+        <button class="sm" onclick="selectStation(${idx})">▶ 再生 (#${idx + 1})</button>
+      </div>
+      <div class="station-inputs">
+        <input type="text" placeholder="局名 (例: SomaFM: Groove Salad)" value="${escapeAttr(st.name)}" onchange="stations[${idx}].name = this.value">
+        <input type="url" placeholder="ストリームURL (http://...)" value="${escapeAttr(st.url)}" onchange="stations[${idx}].url = this.value">
+      </div>
+      <div>
+        <button class="sm danger" onclick="removeStation(${idx})">削除</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addStationRow() {
+  if (stations.length >= 16) {
+    showToast('ラジオ局は最大16件まで登録できます');
+    return;
+  }
+  stations.push({name: '', url: ''});
+  renderStations();
+}
+
+function removeStation(idx) {
+  if (stations.length <= 1) {
+    showToast('最低1件のラジオ局が必要です');
+    return;
+  }
+  stations.splice(idx, 1);
+  if (currentStation >= stations.length) {
+    currentStation = 0;
+  }
+  renderStations();
+}
+
+async function saveStations() {
+  const valid = stations.filter(s => s.name.trim() && s.url.trim());
+  if (valid.length === 0) {
+    showToast('有効な局名とURLを入力してください');
+    return;
+  }
+  try {
+    const res = await fetch('/api/stations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({stations: valid, current_station: currentStation})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('ラジオ局リストを保存しました');
+      await loadConfig();
+      fetchStatus();
+    }
+  } catch (e) {
+    showToast('ラジオ局の保存に失敗しました');
+  }
+}
+
+async function resetSomaFM() {
+  if (!confirm('ラジオ局リストをSomaFMのデフォルトプリセットに戻しますか？')) return;
+  try {
+    const res = await fetch('/api/stations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reset_somafm: true})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('SomaFMプリセットを復元しました');
+      await loadConfig();
+      fetchStatus();
+    }
+  } catch (e) {
+    showToast('復元に失敗しました');
+  }
+}
+
+function renderWifiAps() {
+  const container = document.getElementById('wifiContainer');
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const ap = wifiAps[i] || {ssid: '', has_password: false};
+    const row = document.createElement('div');
+    row.className = 'ap-row';
+    const placeholderPass = ap.has_password ? '******** (保存済み・変更時のみ入力)' : 'パスワード';
+    row.innerHTML = `
+      <strong>AP #${i + 1}</strong>
+      <input type="text" id="ssid_${i}" maxlength="32" placeholder="SSID" value="${escapeAttr(ap.ssid)}">
+      <input type="password" id="pass_${i}" maxlength="64" placeholder="${placeholderPass}" data-has-saved="${ap.has_password ? '1' : '0'}">
+    `;
+    container.appendChild(row);
+  }
+}
+
+async function scanWifi() {
+  const scanEl = document.getElementById('scanResults');
+  scanEl.innerHTML = '<span class="hint">スキャン中... (約3秒)</span>';
+  try {
+    const res = await fetch('/api/wifi/scan');
+    const data = await res.json();
+    scanEl.innerHTML = '';
+    if (!data.aps || data.aps.length === 0) {
+      scanEl.innerHTML = '<span class="hint">APが見つかりませんでした</span>';
+      return;
+    }
+    data.aps.forEach(ap => {
+      const chip = document.createElement('button');
+      chip.className = 'scan-chip';
+      chip.textContent = `${ap.ssid} (${ap.rssi} dBm)`;
+      chip.onclick = () => fillScannedSsid(ap.ssid);
+      scanEl.appendChild(chip);
+    });
+  } catch (e) {
+    scanEl.innerHTML = '<span class="hint">スキャンに失敗しました</span>';
+  }
+}
+
+function fillScannedSsid(ssid) {
+  for (let i = 0; i < 5; i++) {
+    const input = document.getElementById(`ssid_${i}`);
+    if (input.value === ssid) {
+      document.getElementById(`pass_${i}`).focus();
+      showToast(`AP #${i + 1} に登録済みです`);
+      return;
+    }
+  }
+  for (let i = 0; i < 5; i++) {
+    const input = document.getElementById(`ssid_${i}`);
+    if (!input.value.trim()) {
+      input.value = ssid;
+      const passInput = document.getElementById(`pass_${i}`);
+      passInput.dataset.hasSaved = '0';
+      passInput.placeholder = 'パスワード';
+      passInput.focus();
+      showToast(`AP #${i + 1} に "${ssid}" をセットしました`);
+      return;
+    }
+  }
+  showToast('空きスロットがありません。いずれかのSSIDを消去してから選択してください。');
+}
+
+async function saveWifi() {
+  const payload = [];
+  for (let i = 0; i < 5; i++) {
+    const ssid = document.getElementById(`ssid_${i}`).value.trim();
+    const passEl = document.getElementById(`pass_${i}`);
+    const pass = passEl.value;
+    const keep = (pass === '' && passEl.dataset.hasSaved === '1');
+    payload.push({
+      ssid,
+      password: pass,
+      keep_password: keep
+    });
+  }
+  try {
+    const res = await fetch('/api/wifi', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({wifi_aps: payload})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Wi-Fi設定を保存しました。最強のAPをスキャンして再接続します...');
+      setTimeout(() => { loadConfig(); fetchStatus(); }, 4000);
+    }
+  } catch (e) {
+    showToast('Wi-Fi設定の保存に失敗しました');
+  }
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+loadConfig();
+fetchStatus();
+setInterval(fetchStatus, 2500);
+</script>
+</body>
+</html>

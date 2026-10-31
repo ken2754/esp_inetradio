@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "app_config.c"
+        "wifi_manager.c"
+        "audio_player.c"
+        "web_server.c"
+    INCLUDE_DIRS
+        "."
+    EMBED_TXTFILES
+        "web/index.html"
+)
