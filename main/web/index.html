@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ESP32-S3 インターネットラジオ設定</title>
+<title>ESP32-S3 Internet Radio Config</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -231,57 +231,57 @@
 <div class="container">
   <header>
     <h1>ESP32-S3 Internet Radio</h1>
-    <div id="wifiBadge" class="badge">読み込み中...</div>
+    <div id="wifiBadge" class="badge">Loading...</div>
   </header>
 
-  <!-- 再生ステータス & 音量 -->
+  <!-- Playback Status & Volume -->
   <div class="card">
     <h2>
-      <span>再生ステータス & 音量</span>
-      <button class="sm" onclick="nextStation()">次の局へ巡回 (BOOT)</button>
+      <span>Playback Status & Volume</span>
+      <button class="sm" onclick="nextStation()">Next Station (BOOT)</button>
     </h2>
     <div class="now-playing">
       <div class="station-headline" id="curStationName">--</div>
       <div class="track-title" id="curTrackTitle"></div>
       <div class="meta-row">
-        <span>状態: <strong id="curState">--</strong></span>
-        <span>形式: <strong id="curCodec">--</strong></span>
-        <span>バッファ: <strong id="curBuffer">0%</strong></span>
+        <span>State: <strong id="curState">--</strong></span>
+        <span>Codec: <strong id="curCodec">--</strong></span>
+        <span>Buffer: <strong id="curBuffer">0%</strong></span>
         <span>IP: <strong id="curIp">--</strong></span>
       </div>
       <div class="vol-row">
-        <span>🔈 音量</span>
+        <span>🔈 Volume</span>
         <input type="range" id="volSlider" min="0" max="100" value="50" oninput="onVolumeInput(this.value)" onchange="onVolumeCommit(this.value)">
         <span class="vol-val" id="volLabel">50%</span>
       </div>
     </div>
   </div>
 
-  <!-- ラジオ局設定 -->
+  <!-- Radio Station Settings -->
   <div class="card">
     <h2>
-      <span>ラジオ局リスト (BOOTボタン巡回順)</span>
-      <button class="sm secondary" onclick="resetSomaFM()">SomaFM初期値に戻す</button>
+      <span>Radio Stations (BOOT Button Cycle)</span>
+      <button class="sm secondary" onclick="resetSomaFM()">Reset to SomaFM Presets</button>
     </h2>
-    <p class="hint">「再生」を押すと即座に選局します。局名やURLを編集・追加した後は「ラジオ局リストを保存」を押してください。</p>
+    <p class="hint">Click "Play" to switch immediately. After editing or adding stations, click "Save Station List".</p>
     <div id="stationsContainer"></div>
     <div class="actions-bar">
-      <button class="secondary" onclick="addStationRow()">＋ ラジオ局を追加</button>
-      <button onclick="saveStations()">ラジオ局リストを保存</button>
+      <button class="secondary" onclick="addStationRow()">＋ Add Station</button>
+      <button onclick="saveStations()">Save Station List</button>
     </div>
   </div>
 
-  <!-- Wi-Fi AP設定 -->
+  <!-- Wi-Fi AP Settings -->
   <div class="card">
     <h2>
-      <span>Wi-Fi AP 設定 (最大5件)</span>
-      <button class="sm secondary" onclick="scanWifi()">周囲のAPをスキャン</button>
+      <span>Wi-Fi AP Settings (Up to 5 APs)</span>
+      <button class="sm secondary" onclick="scanWifi()">Scan Nearby APs</button>
     </h2>
-    <p class="hint">登録された最大5個のAPのうち、最も電波強度(RSSI)の高いAPへ自動接続します。接続できるAPがない場合は 192.168.4.1 (SSID: ESP32-InetRadio) のSoftAPを起動します。</p>
+    <p class="hint">Automatically connects to the registered AP with the strongest signal (RSSI). If no registered AP is found, SoftAP starts at 192.168.4.1 (SSID: ESP32-InetRadio).</p>
     <div id="scanResults" class="scan-list"></div>
     <div class="ap-grid" id="wifiContainer" style="margin-top: 10px;"></div>
     <div class="actions-bar">
-      <button onclick="saveWifi()">Wi-Fi設定を保存して再接続</button>
+      <button onclick="saveWifi()">Save Wi-Fi & Reconnect</button>
     </div>
   </div>
 </div>
@@ -318,11 +318,11 @@ async function fetchStatus() {
       badge.textContent = `SoftAP: ${w.ssid} (${w.ip})`;
     } else {
       badge.className = 'badge';
-      badge.textContent = 'Wi-Fi 接続中...';
+      badge.textContent = 'Connecting to Wi-Fi...';
     }
 
     document.getElementById('curStationName').textContent =
-      p.station_name ? `[#${p.current_station + 1}] ${p.station_name}` : '未選択';
+      p.station_name ? `[#${p.current_station + 1}] ${p.station_name}` : 'None';
     document.getElementById('curTrackTitle').textContent =
       p.stream_title ? `♪ ${p.stream_title}` : (p.station_url || '');
     document.getElementById('curState').textContent = p.state;
@@ -356,7 +356,7 @@ async function loadConfig() {
     renderStations();
     renderWifiAps();
   } catch (e) {
-    showToast('設定の読み込みに失敗しました');
+    showToast('Failed to load settings');
   }
 }
 
@@ -394,11 +394,11 @@ async function selectStation(index) {
     if (data.ok) {
       currentStation = data.current_station;
       highlightActiveStation();
-      showToast(`選局: ${data.name}`);
+      showToast(`Selected: ${data.name}`);
       fetchStatus();
     }
   } catch (e) {
-    showToast('選局に失敗しました');
+    showToast('Failed to select station');
   }
 }
 
@@ -413,11 +413,11 @@ async function nextStation() {
     if (data.ok) {
       currentStation = data.current_station;
       highlightActiveStation();
-      showToast(`次の局へ切替: ${data.name}`);
+      showToast(`Switched to: ${data.name}`);
       fetchStatus();
     }
   } catch (e) {
-    showToast('局切替に失敗しました');
+    showToast('Failed to switch station');
   }
 }
 
@@ -436,14 +436,14 @@ function renderStations() {
     row.className = 'station-item' + (idx === currentStation ? ' active' : '');
     row.innerHTML = `
       <div>
-        <button class="sm" onclick="selectStation(${idx})">▶ 再生 (#${idx + 1})</button>
+        <button class="sm" onclick="selectStation(${idx})">▶ Play (#${idx + 1})</button>
       </div>
       <div class="station-inputs">
-        <input type="text" placeholder="局名 (例: SomaFM: Groove Salad)" value="${escapeAttr(st.name)}" onchange="stations[${idx}].name = this.value">
-        <input type="url" placeholder="ストリームURL (http://...)" value="${escapeAttr(st.url)}" onchange="stations[${idx}].url = this.value">
+        <input type="text" placeholder="Station Name (e.g. SomaFM: Groove Salad)" value="${escapeAttr(st.name)}" onchange="stations[${idx}].name = this.value">
+        <input type="url" placeholder="Stream URL (http://...)" value="${escapeAttr(st.url)}" onchange="stations[${idx}].url = this.value">
       </div>
       <div>
-        <button class="sm danger" onclick="removeStation(${idx})">削除</button>
+        <button class="sm danger" onclick="removeStation(${idx})">Delete</button>
       </div>
     `;
     container.appendChild(row);
@@ -452,7 +452,7 @@ function renderStations() {
 
 function addStationRow() {
   if (stations.length >= 16) {
-    showToast('ラジオ局は最大16件まで登録できます');
+    showToast('Maximum 16 stations allowed');
     return;
   }
   stations.push({name: '', url: ''});
@@ -461,7 +461,7 @@ function addStationRow() {
 
 function removeStation(idx) {
   if (stations.length <= 1) {
-    showToast('最低1件のラジオ局が必要です');
+    showToast('At least 1 station is required');
     return;
   }
   stations.splice(idx, 1);
@@ -474,7 +474,7 @@ function removeStation(idx) {
 async function saveStations() {
   const valid = stations.filter(s => s.name.trim() && s.url.trim());
   if (valid.length === 0) {
-    showToast('有効な局名とURLを入力してください');
+    showToast('Please enter a valid station name and URL');
     return;
   }
   try {
@@ -485,17 +485,17 @@ async function saveStations() {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast('ラジオ局リストを保存しました');
+      showToast('Station list saved');
       await loadConfig();
       fetchStatus();
     }
   } catch (e) {
-    showToast('ラジオ局の保存に失敗しました');
+    showToast('Failed to save stations');
   }
 }
 
 async function resetSomaFM() {
-  if (!confirm('ラジオ局リストをSomaFMのデフォルトプリセットに戻しますか？')) return;
+  if (!confirm('Reset station list to default SomaFM presets?')) return;
   try {
     const res = await fetch('/api/stations', {
       method: 'POST',
@@ -504,12 +504,12 @@ async function resetSomaFM() {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast('SomaFMプリセットを復元しました');
+      showToast('Restored SomaFM presets');
       await loadConfig();
       fetchStatus();
     }
   } catch (e) {
-    showToast('復元に失敗しました');
+    showToast('Failed to restore presets');
   }
 }
 
@@ -520,7 +520,7 @@ function renderWifiAps() {
     const ap = wifiAps[i] || {ssid: '', has_password: false};
     const row = document.createElement('div');
     row.className = 'ap-row';
-    const placeholderPass = ap.has_password ? '******** (保存済み・変更時のみ入力)' : 'パスワード';
+    const placeholderPass = ap.has_password ? '******** (Saved, enter only to change)' : 'Password';
     row.innerHTML = `
       <strong>AP #${i + 1}</strong>
       <input type="text" id="ssid_${i}" maxlength="32" placeholder="SSID" value="${escapeAttr(ap.ssid)}">
@@ -532,13 +532,13 @@ function renderWifiAps() {
 
 async function scanWifi() {
   const scanEl = document.getElementById('scanResults');
-  scanEl.innerHTML = '<span class="hint">スキャン中... (約3秒)</span>';
+  scanEl.innerHTML = '<span class="hint">Scanning... (approx 3 sec)</span>';
   try {
     const res = await fetch('/api/wifi/scan');
     const data = await res.json();
     scanEl.innerHTML = '';
     if (!data.aps || data.aps.length === 0) {
-      scanEl.innerHTML = '<span class="hint">APが見つかりませんでした</span>';
+      scanEl.innerHTML = '<span class="hint">No access points found</span>';
       return;
     }
     data.aps.forEach(ap => {
@@ -549,7 +549,7 @@ async function scanWifi() {
       scanEl.appendChild(chip);
     });
   } catch (e) {
-    scanEl.innerHTML = '<span class="hint">スキャンに失敗しました</span>';
+    scanEl.innerHTML = '<span class="hint">Scan failed</span>';
   }
 }
 
@@ -558,7 +558,7 @@ function fillScannedSsid(ssid) {
     const input = document.getElementById(`ssid_${i}`);
     if (input.value === ssid) {
       document.getElementById(`pass_${i}`).focus();
-      showToast(`AP #${i + 1} に登録済みです`);
+      showToast(`Already filled in AP #${i + 1}`);
       return;
     }
   }
@@ -568,13 +568,13 @@ function fillScannedSsid(ssid) {
       input.value = ssid;
       const passInput = document.getElementById(`pass_${i}`);
       passInput.dataset.hasSaved = '0';
-      passInput.placeholder = 'パスワード';
+      passInput.placeholder = 'Password';
       passInput.focus();
-      showToast(`AP #${i + 1} に "${ssid}" をセットしました`);
+      showToast(`Set "${ssid}" to AP #${i + 1}`);
       return;
     }
   }
-  showToast('空きスロットがありません。いずれかのSSIDを消去してから選択してください。');
+  showToast('No empty AP slots available. Clear an SSID first.');
 }
 
 async function saveWifi() {
@@ -598,11 +598,11 @@ async function saveWifi() {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast('Wi-Fi設定を保存しました。最強のAPをスキャンして再接続します...');
+      showToast('Wi-Fi settings saved. Scanning and connecting to strongest AP...');
       setTimeout(() => { loadConfig(); fetchStatus(); }, 4000);
     }
   } catch (e) {
-    showToast('Wi-Fi設定の保存に失敗しました');
+    showToast('Failed to save Wi-Fi settings');
   }
 }
 

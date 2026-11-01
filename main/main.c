@@ -72,35 +72,9 @@ static void init_mdns_service(void)
     }
 }
 
-#include "driver/gpio.h"
-
-// GPIO 4: Control external high-side switch (Load Switch IC) for KCX_BT_EMITTER 5V power
-#define KCX_POWER_GPIO      4
-
-static void kcx_power_init(void)
-{
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << KCX_POWER_GPIO),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&io_conf);
-    gpio_set_level(KCX_POWER_GPIO, 0); // Keep OFF by default during Wi-Fi scan
-    ESP_LOGI(TAG, "KCX_BT_EMITTER power control initialized on GPIO %d (State: OFF)", KCX_POWER_GPIO);
-}
-
-static void kcx_set_power(bool enable)
-{
-    gpio_set_level(KCX_POWER_GPIO, enable ? 1 : 0);
-    ESP_LOGI(TAG, "KCX_BT_EMITTER power -> %s", enable ? "ON (5V enabled)" : "OFF (5V cut)");
-}
-
 static void on_wifi_state_changed(bool sta_connected)
 {
     if (sta_connected) {
-        kcx_set_power(true);
         radio_station_t st = {0};
         uint8_t idx = 0;
         if (app_config_get_current_station(&st, &idx)) {
@@ -108,7 +82,6 @@ static void on_wifi_state_changed(bool sta_connected)
             audio_player_play_station(st.name, st.url);
         }
     } else {
-        kcx_set_power(false);
         ESP_LOGW(TAG, "Wi-Fi STA disconnected, stopping audio player");
         audio_player_stop();
     }
@@ -122,9 +95,6 @@ void app_main(void)
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    // Initialize KCX power switch (keep OFF until Wi-Fi is connected to avoid 2.4GHz interference)
-    kcx_power_init();
 
     // 1. Load configuration from NVS (or initialize SomaFM presets)
     ESP_ERROR_CHECK(app_config_init());
