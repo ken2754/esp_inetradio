@@ -3,7 +3,7 @@
 An ultra-compact, headless, high-fidelity Internet Radio receiver built for the **ESP32-S3 SuperMini** (`ESP32-S3FH4R2`: 4MB Flash / 2MB Quad PSRAM) and **PCM5102A 32-bit I2S DAC**.
 
 <p align="center">
-  <img src="IMG_3810.jpg" alt="Assembled ESP32-S3 SuperMini Internet Radio with PCM5102A DAC" width="600">
+  <img src="image.jpg" alt="Assembled ESP32-S3 SuperMini Internet Radio with PCM5102A DAC" width="600">
 </p>
 
 Stream MP3 and AAC web radio stations directly to your headphones, active speakers, or amplifier with zero display overhead, responsive web management, and instant hardware station switching.
