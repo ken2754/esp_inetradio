@@ -3,7 +3,7 @@
 This project provides a dedicated, ultra-compact headless Internet Radio receiver utilizing the **ESP32-S3 SuperMini** paired with a **PCM5102A 32-bit I2S DAC**.
 
 <p align="center">
-  <img src="IMG_3810.jpg" alt="Assembled Hardware Setup" width="550">
+  <img src="image.jpg" alt="Assembled Hardware Setup" width="550">
 </p>
 
 ---
